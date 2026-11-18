@@ -7,6 +7,7 @@ Demo games built in the Google playable ad format. Each game is a single self-co
 | Folder | Game | What you do |
 | --- | --- | --- |
 | `sand-art/` | Sand Art: Mountain | Pour coloured sand from a funnel to paint a mountain sunset. Accuracy against the target picture is scored live. |
+| `featherlight/` | Featherlight: Set up fans, press Simulate, and let the wind carry a feather to its nest. |
  
 ## Running a game
  
