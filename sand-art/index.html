@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<!-- Google playable: orientation tag. The Exit API script is intentionally NOT included yet.
+     When wiring the SDK, add in <head>:
+     <script type="text/javascript" src="https://tpc.googlesyndication.com/pagead/gadgets/html5/api/exitapi.js"></script>
+     onCTA() below already calls ExitApi.exit() when it is present. -->
+<meta name="ad.orientation" content="portrait">
+<meta name="ad.size" content="width=320,height=480">
+<title>Sand Art: Mountain</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  font-family:ui-rounded,"SF Pro Rounded","Nunito","Segoe UI",system-ui,sans-serif;
+  color:#f6efe6;
+  background:
+    radial-gradient(120% 70% at 50% 0%,#3a2f5c 0%,rgba(58,47,92,0) 60%),
+    radial-gradient(90% 60% at 50% 100%,#5a3550 0%,rgba(90,53,80,0) 65%),
+    #17132a;
+  user-select:none;-webkit-user-select:none;touch-action:none;
+}
+#app{position:relative;height:100%;display:flex;flex-direction:column;align-items:center;
+  padding:10px 12px 12px;gap:8px;max-width:560px;margin:0 auto}
+
+/* HUD */
+#hud{width:100%;display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.title{line-height:1.1;flex:0 0 auto}
+.title span{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#b9a9d6}
+.title b{font-size:17px;font-weight:800}
+.acc{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+.bar{position:relative;flex:1;height:14px;border-radius:9px;background:rgba(255,255,255,.1);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.4)}
+.bar i{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:9px;
+  background:linear-gradient(90deg,#f6a35c,#ee7fa0 55%,#ffd98a);transition:width .25s ease-out}
+.bar s{position:absolute;top:-4px;width:20px;height:22px;margin-left:-10px;text-decoration:none;
+  display:grid;place-items:center;font-size:14px;color:rgba(255,255,255,.28);transition:color .3s,transform .3s;
+  text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.bar s.on{color:#ffd76a;transform:scale(1.3)}
+#accNum{font-size:20px;font-weight:800;min-width:52px;text-align:right;font-variant-numeric:tabular-nums}
+
+/* Stage: a wooden frame with a glass front */
+#stage{position:relative;flex:1 1 auto;width:100%;min-height:0;display:grid;place-items:center}
+#frame{position:relative;line-height:0;border-radius:12px;padding:9px;cursor:pointer;
+  background:linear-gradient(145deg,#96704e,#6a4930 38%,#4a3221 58%,#7a573b);
+  box-shadow:0 16px 36px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.28),inset 0 -2px 3px rgba(0,0,0,.45)}
+#cv{display:block;border-radius:3px;background:#16141d}
+#glass{position:absolute;left:9px;top:9px;right:9px;bottom:9px;border-radius:3px;pointer-events:none;
+  background:linear-gradient(112deg,rgba(255,255,255,.12) 0%,rgba(255,255,255,.03) 20%,rgba(255,255,255,0) 38%,rgba(255,255,255,0) 74%,rgba(255,255,255,.05) 100%);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.65),inset 0 7px 16px rgba(0,0,0,.5),inset 0 0 44px rgba(0,0,0,.28)}
+#tip{position:absolute;left:0;right:0;top:38%;display:flex;flex-direction:column;align-items:center;gap:14px;
+  pointer-events:none;transition:opacity .35s}
+#tip.off{opacity:0}
+#tip p{font-size:18px;font-weight:800;padding:8px 16px;border-radius:999px;background:rgba(23,19,42,.82);
+  box-shadow:0 4px 14px rgba(0,0,0,.35)}
+#tip u{display:block;width:34px;height:34px;border-radius:50%;text-decoration:none;
+  background:rgba(255,255,255,.9);box-shadow:0 0 0 9px rgba(255,255,255,.22);animation:swipe 1.9s ease-in-out infinite}
+@keyframes swipe{0%,100%{transform:translateX(-70px)}50%{transform:translateX(70px)}}
+
+/* Palette */
+#foot{width:100%;flex:0 0 auto;display:flex;flex-direction:column;gap:8px;align-items:center}
+#palette{display:flex;justify-content:center;gap:clamp(6px,2.4vw,14px);width:100%}
+.sw{position:relative;flex:0 1 54px;aspect-ratio:1;border:0;border-radius:50%;background:none;cursor:pointer;
+  transition:transform .18s cubic-bezier(.3,1.6,.5,1)}
+.sw .ring{position:absolute;left:0;top:0;right:0;bottom:0;border-radius:50%}
+.sw .dot{position:absolute;left:5px;top:5px;right:5px;bottom:5px;border-radius:50%;
+  box-shadow:inset 0 -5px 9px rgba(0,0,0,.28),inset 0 4px 6px rgba(255,255,255,.3),0 3px 7px rgba(0,0,0,.4)}
+.sw.sel{transform:translateY(-6px) scale(1.14)}
+.sw.sel .dot{box-shadow:inset 0 -5px 9px rgba(0,0,0,.28),inset 0 4px 6px rgba(255,255,255,.3),0 0 0 2px #fff,0 6px 12px rgba(0,0,0,.45)}
+.sw.hint:not(.sel){animation:nudge 1s ease-in-out infinite}
+.sw.hint::after{content:"";position:absolute;left:50%;top:-11px;width:0;height:0;margin-left:-6px;
+  border:6px solid transparent;border-top-color:#ffd76a;animation:bob 1s ease-in-out infinite}
+.sw.full .dot::after{content:"\2713";position:absolute;left:0;top:0;right:0;bottom:0;display:grid;place-items:center;
+  font-size:20px;font-weight:900;color:rgba(20,16,36,.75)}
+@keyframes nudge{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+#actions{display:flex;gap:10px}
+.btn{font:inherit;font-weight:800;font-size:13px;color:#e6dcf5;border:0;border-radius:999px;padding:8px 18px;
+  background:rgba(255,255,255,.12);cursor:pointer;transition:transform .12s,opacity .2s}
+.btn:active{transform:scale(.94)}
+.btn[disabled]{opacity:.35;pointer-events:none}
+
+/* End card */
+#end{position:absolute;left:0;top:0;right:0;bottom:0;display:none;place-items:center;background:rgba(15,11,30,.5);
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);z-index:5}
+#end.show{display:grid;animation:fade .35s ease-out}
+.card{width:min(86%,330px);padding:24px 22px 20px;border-radius:24px;text-align:center;
+  background:linear-gradient(180deg,#3b2f60,#2a2147);box-shadow:0 20px 50px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.14);
+  animation:pop .45s cubic-bezier(.3,1.5,.5,1)}
+.card h2{font-size:25px;font-weight:900;margin-bottom:6px}
+.stars{font-size:44px;letter-spacing:6px;margin:4px 0 2px}
+.stars span{display:inline-block;color:rgba(255,255,255,.18);transform:scale(.6);transition:transform .4s cubic-bezier(.3,1.8,.5,1),color .3s}
+.stars span.on{color:#ffd76a;transform:scale(1);text-shadow:0 0 16px rgba(255,215,106,.6)}
+.big{font-size:54px;font-weight:900;line-height:1.05;font-variant-numeric:tabular-nums}
+.card p{font-size:13px;color:#c5b8de;margin-bottom:16px}
+.cta{display:block;width:100%;font:inherit;font-size:19px;font-weight:900;color:#3a1d10;border:0;border-radius:16px;
+  padding:14px;cursor:pointer;background:linear-gradient(180deg,#ffd98a,#f6a35c);
+  box-shadow:0 5px 0 #b96a34,0 10px 20px rgba(0,0,0,.35);animation:pulse 1.3s ease-in-out infinite}
+.cta:active{transform:translateY(3px);box-shadow:0 2px 0 #b96a34}
+.again{margin-top:14px;background:none;border:0;font:inherit;font-weight:800;font-size:14px;color:#c5b8de;cursor:pointer;padding:6px 12px}
+#toast{position:absolute;left:50%;bottom:18%;transform:translateX(-50%);padding:8px 14px;border-radius:10px;font-size:12px;
+  background:#0f0b1e;color:#ffd98a;opacity:0;transition:opacity .25s;pointer-events:none;z-index:9;white-space:nowrap}
+#toast.show{opacity:1}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@media (max-height:520px){.title span{display:none}#app{padding:6px 10px 8px;gap:5px}.sw{flex-basis:42px}#frame{padding:6px}#glass{left:6px;top:6px;right:6px;bottom:6px}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="title"><span>Level 1</span><b>Mountain Sunset</b></div>
+    <div class="acc">
+      <div class="bar"><i id="accFill"></i><s id="st1">&#9733;</s><s id="st2">&#9733;</s><s id="st3">&#9733;</s></div>
+      <div id="accNum">0%</div>
+    </div>
+  </div>
+  <div id="stage">
+    <div id="frame"><canvas id="cv"></canvas><div id="glass"></div></div>
+    <div id="tip"><p>Hold &amp; drag to pour sand</p><u></u></div>
+  </div>
+  <div id="foot">
+    <div id="palette"></div>
+    <div id="actions">
+      <button class="btn" id="undo" disabled>Undo</button>
+      <button class="btn" id="restart">Restart</button>
+      <button class="btn" id="done" disabled>Finish</button>
+    </div>
+  </div>
+  <div id="end">
+    <div class="card">
+      <h2 id="endTitle">Beautiful!</h2>
+      <div class="stars"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div>
+      <div class="big" id="endAcc">0%</div>
+      <p>match with the picture</p>
+      <button class="cta" id="cta">Play Now</button>
+      <button class="again" id="again">Try again</button>
+    </div>
+  </div>
+  <div id="toast">CTA fired (SDK not connected yet)</div>
+</div>
+
+<script>
+/*CORE-START  (simulation + level + scoring; no DOM in here) */
+var STARS = [0.60, 0.78, 0.90];   // accuracy needed for 1 / 2 / 3 stars
+var FILL_SECONDS = 30;            // seconds of pouring needed to fill the whole frame
+var RELAX_PASSES = 14;            // collapse passes per tick (only used after an undo leaves a cliff)
+var MAX_SHIFT = 6;                // most grains one column sheds per pass
+var BOUNCE = 0.3;                 // share of grains that skip once on impact
+var REPOSE = 0.65;                // slope the level is drawn with (the sand itself rests at 2/3, about 34 degrees)
+var NSH = 64;                     // shades per colour
+
+/* ---- Level: a picture is a stack of sand layers, bottom to top, written on a 108 x 144 board.
+   Each profile is the height that colour's pile reaches. Profiles are limited to the angle
+   the sand really rests at, so the picture can always be poured. ---- */
+function cone(x, px, ph) { return ph - REPOSE * Math.abs(x - px); }
+var MOUNTAIN = {
+  name: 'Mountain Sunset',
+  colors: [   /* in pouring order */
+    { name: 'Meadow', rgb: [98, 168, 88] },
+    { name: 'Rock',   rgb: [118, 104, 152] },
+    { name: 'Snow',   rgb: [240, 236, 226] },
+    { name: 'Glow',   rgb: [244, 158, 76] },
+    { name: 'Dusk',   rgb: [228, 106, 146] },
+    { name: 'Night',  rgb: [66, 98, 190] }
+  ],
+  layers: [
+    function (x) { return Math.max(14, cone(x, 16, 34), cone(x, 54, 25), cone(x, 90, 36)); },
+    function (x) { return Math.max(Math.min(cone(x, 62, 100), 85), cone(x, 8, 80)); },
+    function (x) { return cone(x, 62, 100); },
+    function (x) { return 90 + 2.5 * Math.sin(x * 0.11 + 0.6); },
+    function (x) { return 116 + 3 * Math.sin(x * 0.085 + 1); },
+    function () { return 144; }
+  ]
+};
+var LEVEL = MOUNTAIN, NC = LEVEL.colors.length;
+
+var W = 0, H = 0, N = 0, U = 1, TOL = 1;
+var g, sh, st, h, mv, pix, target, okMask, tops, PAL, mott;
+var targetCount = new Int32Array(NC + 1), per = new Int32Array(NC + 1), need = new Float64Array(NC + 1);
+var filled = 0, correct = 0, passId = 0, tickNo = 0, settled = true, emitAcc = 0;
+var dx0 = 0, dy0 = 0, dx1 = -1, dy1 = -1;                 // dirty rectangle of the grain image
+var seed = 0x9e3779b9;
+function rnd() { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296; }
+function gauss() { return (rnd() + rnd() + rnd() + rnd() - 2) * 1.732; }
+
+/* free-falling grains */
+var PMAX = 20000, pn = 0;
+var ppx = new Float32Array(PMAX), ppy = new Float32Array(PMAX), pvx = new Float32Array(PMAX), pvy = new Float32Array(PMAX);
+var pc = new Uint8Array(PMAX), ps = new Uint8Array(PMAX), pb = new Uint8Array(PMAX), pk = new Uint16Array(PMAX);
+var pm = new Uint8Array(PMAX);   // 0 = falling, 1 = rolling down a slope (then ppy is its height above the surface, pvx its signed speed)
+var ROLL0 = 1.5, ROLLA = 0.45, ROLLMAX = 7, LIFT = 3;
+var RATE = 1, GRAV = 1, V0 = 1, SIG = 1, VXS = 0.1;
+
+var MOTTLE = [0.93, 0.965, 1, 1.035, 1.07];   // slow light/dark drift across the pile, as in a photo of packed sand
+function buildPalette() {
+  var keep = seed; seed = 0x51ab37c1; PAL = [null];
+  for (var c = 0; c < NC; c++) {
+    var b = LEVEL.colors[c].rgb, lv = [], q;
+    for (q = 0; q < MOTTLE.length; q++) lv.push(new Uint32Array(NSH));
+    for (var s = 0; s < NSH; s++) {
+      var f = (s < NSH / 2 ? 0.95 : 1.04) * (1 + 0.085 * gauss()), r = rnd(), wm = 0;
+      if (r < 0.10) f *= 0.68;            /* grain lying in shadow */
+      else if (r > 0.95) { f *= 1.1; wm = r > 0.988 ? 0.3 : 0.1; }   /* grain catching the light */
+      var j = [1 + 0.035 * gauss(), 1 + 0.035 * gauss(), 1 + 0.035 * gauss()];
+      for (q = 0; q < MOTTLE.length; q++) {
+        var v = [0, 0, 0];
+        for (var k = 0; k < 3; k++) {
+          var x = b[k] * f * j[k] * MOTTLE[q]; x += (255 - x) * wm;
+          v[k] = x < 0 ? 0 : x > 255 ? 255 : x | 0;
+        }
+        lv[q][s] = (255 << 24) | (v[2] << 16) | (v[1] << 8) | v[0];
+      }
+    }
+    PAL.push(lv);
+  }
+  seed = keep;
+}
+function buildMottle() {
+  var keep = seed; seed = 0x7f4a7c15;
+  function lattice(cx, cy) {
+    var gw = Math.ceil(W / cx) + 2, gh = Math.ceil(H / cy) + 2, a = new Float32Array(gw * gh);
+    for (var i = 0; i < a.length; i++) a[i] = rnd();
+    return { a: a, gw: gw, cx: cx, cy: cy };
+  }
+  function samp(L, x, y) {
+    var fx = x / L.cx, fy = y / L.cy, x0 = fx | 0, y0 = fy | 0, i = y0 * L.gw + x0, a = L.a;
+    fx -= x0; fy -= y0; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+    var t = a[i] + (a[i + 1] - a[i]) * fx, b = a[i + L.gw] + (a[i + L.gw + 1] - a[i + L.gw]) * fx;
+    return t + (b - t) * fy;
+  }
+  var A = lattice(46 * U + 6, 20 * U + 3), B = lattice(150 * U + 10, 70 * U + 6), n = MOTTLE.length;
+  for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+    var v = 0.6 * samp(A, x, y) + 0.4 * samp(B, x, y) + (rnd() - 0.5) * 0.2;
+    var q = Math.floor((v - 0.5) * 9.5 + n / 2);
+    mott[y * W + x] = q < 0 ? 0 : q >= n ? n - 1 : q;
+  }
+  seed = keep;
+}
+
+function buildTarget() {
+  var s = W / 108, x, k, prev = null;
+  tops = [];
+  for (k = 0; k < NC; k++) {
+    var t = new Int16Array(W);
+    for (x = 0; x < W; x++) t[x] = Math.max(0, Math.min(H, Math.round(LEVEL.layers[k]((x + 0.5) / s) * s)));
+    if (k === NC - 1) for (x = 0; x < W; x++) t[x] = H;
+    if (prev) for (x = 0; x < W; x++) if (t[x] < prev[x]) t[x] = prev[x];
+    for (var rep = 0; rep < 2; rep++) {                   // keep every surface within the resting angle
+      for (x = 1; x < W; x++) { if (t[x] > t[x - 1] + 1) t[x] = t[x - 1] + 1; if (x >= 3 && t[x] > t[x - 3] + 2) t[x] = t[x - 3] + 2; }
+      for (x = W - 2; x >= 0; x--) { if (t[x] > t[x + 1] + 1) t[x] = t[x + 1] + 1; if (x <= W - 4 && t[x] > t[x + 3] + 2) t[x] = t[x + 3] + 2; }
+    }
+    if (prev) for (x = 0; x < W; x++) if (t[x] < prev[x]) t[x] = prev[x];
+    tops.push(t); prev = t;
+  }
+  targetCount.fill(0);
+  for (x = 0; x < W; x++) for (var r = 0; r < H; r++) {
+    var c = NC; for (k = 0; k < NC; k++) if (r < tops[k][x]) { c = k + 1; break; }
+    target[(H - 1 - r) * W + x] = c; targetCount[c]++;
+  }
+  /* a grain counts as correct when the picture has its colour within TOL cells */
+  var tmp = new Uint8Array(N), y, d, m;
+  for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+    m = 0; for (d = -TOL; d <= TOL; d++) { var xx = x + d; if (xx >= 0 && xx < W) m |= 1 << target[y * W + xx]; }
+    tmp[y * W + x] = m;
+  }
+  for (y = 0; y < H; y++) for (x = 0; x < W; x++) {
+    m = 0; for (d = -TOL; d <= TOL; d++) { var yy = y + d; if (yy >= 0 && yy < H) m |= tmp[yy * W + x]; }
+    okMask[y * W + x] = m;
+  }
+}
+
+function initCore(w) {
+  W = w; H = Math.round(w * 4 / 3); N = W * H; U = W / 360; TOL = Math.max(1, Math.round(W / 108));
+  g = new Uint8Array(N); sh = new Uint8Array(N); st = new Uint16Array(N); pix = new Uint32Array(N);
+  target = new Uint8Array(N); okMask = new Uint8Array(N); mott = new Uint8Array(N); h = new Int16Array(W); mv = new Int32Array(W);
+  RATE = N / (FILL_SECONDS * 60); GRAV = H * 0.0026; V0 = H * 0.010; SIG = W * 0.0045; VXS = W * 0.00028;
+  ROLL0 = 1.5 * U; ROLLA = 0.45 * U; ROLLMAX = 7 * U; LIFT = 3 * U;
+  buildPalette(); buildMottle(); buildTarget(); resetGrid();
+}
+function resetGrid() {
+  g.fill(0); sh.fill(0); st.fill(0); pix.fill(0); h.fill(0); mv.fill(0);
+  pn = 0; filled = 0; correct = 0; per.fill(0); tickNo = 0; emitAcc = 0; settled = true;
+  dx0 = 0; dy0 = 0; dx1 = W - 1; dy1 = H - 1;
+}
+
+/* ---- grains at rest: every column is a stack, only the top grain can move ---- */
+function deposit(x, c, s, k) {
+  var hx = h[x]; if (hx >= H) return false;
+  var y = H - 1 - hx, i = y * W + x;
+  g[i] = c; sh[i] = s; st[i] = k; pix[i] = PAL[c][mott[i]][s]; h[x] = hx + 1;
+  filled++; if (okMask[i] >> c & 1) correct++; if (target[i] === c) per[c]++;
+  if (x < dx0) dx0 = x; if (x > dx1) dx1 = x; if (y < dy0) dy0 = y; if (y > dy1) dy1 = y;
+  return true;
+}
+function shift(x, x2, m) {
+  for (var j = 0; j < m; j++) {
+    var y = H - h[x], i = y * W + x, c = g[i], s = sh[i], k = st[i];
+    g[i] = 0; pix[i] = 0; h[x]--;
+    filled--; if (okMask[i] >> c & 1) correct--; if (target[i] === c) per[c]--;
+    if (x < dx0) dx0 = x; if (x > dx1) dx1 = x; if (y < dy0) dy0 = y; if (y > dy1) dy1 = y;
+    deposit(x2, c, s, k);
+  }
+}
+/* One collapse pass (same resting rule as rollDir, applied to grains already in the pile). */
+function relax() {
+  passId++;
+  var dir = passId & 1, moved = 0;
+  for (var q = 0; q < W; q++) {
+    var x = dir ? q : W - 1 - q;
+    if (mv[x] === passId) continue;
+    var hx = h[x]; if (!hx) continue;
+    var l = x > 0 ? hx - h[x - 1] : -9, r = x < W - 1 ? hx - h[x + 1] : -9, d = 0, m = 1;
+    if (l >= 2 || r >= 2) {
+      d = l > r ? -1 : r > l ? 1 : (rnd() < 0.5 ? -1 : 1);
+      m = (d < 0 ? l : r) >> 1; if (m > MAX_SHIFT) m = MAX_SHIFT;
+    } else if (l === 1 || r === 1) {
+      var gl = l === 1 && hx - h[x >= 3 ? x - 3 : 0] >= 3;
+      var gr = r === 1 && hx - h[x <= W - 4 ? x + 3 : W - 1] >= 3;
+      if (gl && gr) d = rnd() < 0.5 ? -1 : 1; else if (gl) d = -1; else if (gr) d = 1;
+    }
+    if (d) { shift(x, x + d, m); mv[x + d] = passId; moved++; }
+  }
+  return moved;
+}
+
+/* ---- grains in the air: real gravity, a little scatter, a skip on impact ---- */
+function emit(nx, color, stroke) {
+  emitAcc += RATE;
+  var band = ((tickNo / 22) | 0) & 1, half = NSH >> 1;     // tone drifts as you pour: faint laminae along the slopes, like real sand art
+  while (emitAcc >= 1) {
+    emitAcc--;
+    if (pn >= PMAX) continue;
+    var i = pn++;
+    ppx[i] = nx + gauss() * SIG; ppy[i] = -rnd() * V0;
+    pvx[i] = gauss() * VXS; pvy[i] = V0 * (0.85 + 0.3 * rnd());
+    pc[i] = color; pb[i] = 0; pm[i] = 0; pk[i] = stroke;
+    ps[i] = (rnd() < 0.85 ? band : 1 - band) * half + (rnd() * half | 0);
+  }
+}
+/* Would a grain added on top of column x stay put? 0 = yes, otherwise the side it rolls to.
+   A grain rolls when the drop beside it would be 2 or more, or when it would sit on a one-grain
+   step with a 3-grain drop over the next 3 columns. What stays standing has a slope of at most
+   2/3: the angle of repose of dry sand. */
+function rollDir(x) {
+  var hx = h[x] + 1;
+  var l = x > 0 ? hx - h[x - 1] : -9, r = x < W - 1 ? hx - h[x + 1] : -9;
+  if (l >= 2 || r >= 2) return l > r ? -1 : r > l ? 1 : (rnd() < 0.5 ? -1 : 1);
+  var gl = l === 1 && hx - h[x >= 3 ? x - 3 : 0] >= 3, gr = r === 1 && hx - h[x <= W - 4 ? x + 3 : W - 1] >= 3;
+  if (gl && gr) return rnd() < 0.5 ? -1 : 1;
+  return gl ? -1 : gr ? 1 : 0;
+}
+function killParticle(i) {
+  pn--;
+  if (i < pn) { ppx[i] = ppx[pn]; ppy[i] = ppy[pn]; pvx[i] = pvx[pn]; pvy[i] = pvy[pn]; pc[i] = pc[pn]; ps[i] = ps[pn]; pb[i] = pb[pn]; pk[i] = pk[pn]; pm[i] = pm[pn]; }
+}
+function stepParticles() {
+  for (var i = 0; i < pn; i++) {
+    var x, cx, d;
+    if (pm[i]) {                                   /* rolling down the surface until it finds a resting place */
+      var v = pvx[i]; d = v < 0 ? -1 : 1;
+      var sp = (v < 0 ? -v : v) + ROLLA; if (sp > ROLLMAX) sp = ROLLMAX;
+      var travel = sp, done = false; x = ppx[i]; cx = (x + 0.5) | 0;
+      while (travel > 0) {
+        var stp = travel < 1 ? travel : 1; x += d * stp; travel -= stp;
+        if (x < 0) x = 0; else if (x > W - 1) x = W - 1;
+        var nc = (x + 0.5) | 0; if (nc === cx) continue;
+        cx = nc;
+        var nd = rollDir(cx);
+        if (!nd) { deposit(cx, pc[i], ps[i], pk[i]); done = true; break; }
+        if (nd !== d) { d = nd; sp *= 0.5; travel *= 0.5; }
+      }
+      if (done) { killParticle(i); i--; continue; }
+      ppx[i] = x; pvx[i] = d * sp;
+      continue;
+    }
+    var vy = pvy[i] + GRAV, y = ppy[i] + vy; x = ppx[i] + pvx[i];
+    if (x < 0) { x = 0; pvx[i] = -pvx[i] * 0.3; } else if (x > W - 1) { x = W - 1; pvx[i] = -pvx[i] * 0.3; }
+    cx = (x + 0.5) | 0; var surf = H - h[cx];
+    if (y >= surf - 0.5) {
+      if (!pb[i] && h[cx] < H && rnd() < BOUNCE) {     /* a skip on impact */
+        var lo = cx > 2 ? cx - 3 : 0, hi = cx < W - 3 ? cx + 3 : W - 1, tilt = (h[lo] - h[hi]) * 0.12;
+        pb[i] = 1; y = surf - 0.6; vy = -(0.5 + 1.4 * rnd()) * U;
+        pvx[i] = ((rnd() * 2 - 1) * 1.3 + (tilt > 1 ? 1 : tilt < -1 ? -1 : tilt)) * U;
+      } else {
+        d = h[cx] < H ? rollDir(cx) : 0;
+        if (d) { pm[i] = 1; ppx[i] = x; ppy[i] = rnd() * rnd() * LIFT; pvx[i] = d * ROLL0 * (0.6 + 0.8 * rnd()); continue; }
+        deposit(cx, pc[i], ps[i], pk[i]);
+        killParticle(i); i--; continue;
+      }
+    }
+    ppx[i] = x; ppy[i] = y; pvy[i] = vy;
+  }
+}
+function tick(pouring, nx, color, stroke) {
+  tickNo++;
+  if (pouring) emit(nx, color, stroke);
+  if (pn) stepParticles();
+  if (!settled) {
+    var moved = 0;
+    for (var p = 0; p < RELAX_PASSES; p++) moved += relax();
+    if (!moved) settled = true;
+  }
+}
+
+function recount() {
+  filled = 0; correct = 0; per.fill(0);
+  for (var i = 0; i < N; i++) {
+    var c = g[i]; pix[i] = c ? PAL[c][mott[i]][sh[i]] : 0;
+    if (c) { filled++; if (okMask[i] >> c & 1) correct++; if (target[i] === c) per[c]++; }
+  }
+  dx0 = 0; dy0 = 0; dx1 = W - 1; dy1 = H - 1; settled = false;
+}
+function removeStroke(stroke) {
+  var n = 0, x, r, i, j;
+  for (x = 0; x < W; x++) {
+    var hx = h[x], w = 0;
+    for (r = 0; r < hx; r++) {
+      i = (H - 1 - r) * W + x;
+      if (st[i] === stroke) { n++; continue; }
+      if (w !== r) { j = (H - 1 - w) * W + x; g[j] = g[i]; sh[j] = sh[i]; st[j] = st[i]; }
+      w++;
+    }
+    for (r = w; r < hx; r++) g[(H - 1 - r) * W + x] = 0;
+    h[x] = w;
+  }
+  for (i = 0; i < pn; i++) if (pk[i] === stroke) { killParticle(i); n++; i--; }
+  if (n) recount();
+  return n;
+}
+
+/* ---- continuous scoring ---- */
+var score = { acc: 0, fill: 0, suggest: 1 };
+function evaluate() {
+  var x, k, c;
+  need.fill(0);
+  for (x = 0; x < W; x++) {                         // how much of which colour can still be poured where
+    var hx = h[x];
+    for (k = 0; k < NC; k++) if (hx < tops[k][x]) { need[k + 1] += tops[k][x] - hx; break; }
+  }
+  var sug = 0, best = 0;
+  for (c = 1; c <= NC; c++) if (need[c] > 0.05 * targetCount[c]) { sug = c; break; }
+  if (!sug) for (c = 1; c <= NC; c++) if (need[c] > best) { best = need[c]; sug = c; }
+  score.acc = correct / N; score.fill = filled / N; score.suggest = sug;
+  return score;
+}
+/*CORE-END*/
+
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var cv = $('cv'), ctx = cv.getContext('2d');
+  var dpr = 1, cw = 0, ch = 0, topPx = 0, sc = 2;   // sc = device pixels per grain
+  var PANEL = [24, 22, 31];
+
+  function availCss() {
+    var s = $('stage'), pad = parseFloat(getComputedStyle($('frame')).paddingLeft) * 2 + 12;
+    dpr = Math.min(window.devicePixelRatio || 1, 3);
+    return Math.max(120, Math.min(s.clientWidth - pad, (s.clientHeight - pad) * 108 / 157));
+  }
+  /* grain size: 2 device pixels on phones, 1 on plain screens; the grid is fixed for the session */
+  (function () {
+    var px = availCss() * dpr, k = dpr >= 2 ? 2 : 1, w = Math.floor(px / k);
+    while (w > 504) { k++; w = Math.floor(px / k); }
+    initCore(Math.max(160, w));
+  })();
+  function layout() {
+    var css = availCss(), px = css * dpr;
+    sc = Math.max(1, Math.floor(px / W));                 // whole device pixels per grain: crisp
+    cw = sc * W; topPx = Math.round(cw * 13 / 108); ch = topPx + H * sc;
+    var fit = Math.min(1, px / cw);
+    cv.width = cw; cv.height = ch;
+    cv.style.width = (cw / dpr * fit) + 'px'; cv.style.height = (ch / dpr * fit) + 'px';
+  }
+  window.addEventListener('resize', layout); layout();
+
+  function mk(w, hh) { var c = document.createElement('canvas'); c.width = w; c.height = hh; return c; }
+  function mix(a, b, t) { return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t]; }
+  function pack(c, a) { return ((a === undefined ? 255 : a) << 24) | ((c[2] | 0) << 16) | ((c[1] | 0) << 8) | (c[0] | 0); }
+
+  /* grain image: written by the simulation, only the changed part is uploaded each frame */
+  var sandCv = mk(W, H), sctx = sandCv.getContext('2d');
+  var sandImg = new ImageData(new Uint8ClampedArray(pix.buffer), W, H);
+
+  /* back panel with the faint picture on it: the hint */
+  var edge = new Uint8Array(N);
+  var ghostCv = mk(W, H), hiCv = mk(W, H), hctx = hiCv.getContext('2d');
+  var hiImg = hctx.createImageData(W, H), hiPx = new Uint32Array(hiImg.data.buffer);
+  (function () {
+    var gctx = ghostCv.getContext('2d'), im = gctx.createImageData(W, H), p = new Uint32Array(im.data.buffer);
+    var e = Math.max(1, Math.round(W / 240)), keep = seed; seed = 0x2545f491;
+    for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+      var i = y * W + x, t = target[i];
+      var ed = (x + e < W && target[i + e] !== t) || (x - e >= 0 && target[i - e] !== t) ||
+               (y + e < H && target[i + e * W] !== t) || (y - e >= 0 && target[i - e * W] !== t);
+      edge[i] = ed ? 1 : 0;
+      var n = 1 + (rnd() - 0.5) * 0.16;
+      var c = mix(PANEL, LEVEL.colors[t - 1].rgb, ed ? 0.5 : 0.2);
+      p[i] = pack([c[0] * n, c[1] * n, c[2] * n]);
+    }
+    seed = keep; gctx.putImageData(im, 0, 0);
+  })();
+  function buildHi(sel) {
+    var c = LEVEL.colors[sel - 1].rgb, a = pack(mix(PANEL, c, 0.5)), b = pack(mix(PANEL, c, 0.9));
+    for (var i = 0; i < N; i++) hiPx[i] = target[i] === sel ? (edge[i] ? b : a) : 0;
+    hctx.putImageData(hiImg, 0, 0);
+  }
+
+  /* four tones per colour for grains in flight */
+  var CSS = [null], AIR = [null];
+  LEVEL.colors.forEach(function (c) {
+    CSS.push('rgb(' + c.rgb.join(',') + ')');
+    AIR.push([0.68, 0.88, 1, 1.13].map(function (f) { return 'rgb(' + c.rgb.map(function (v) { return Math.min(255, v * f | 0); }).join(',') + ')'; }));
+  });
+
+  /* ---- state ---- */
+  var sel = 1, pouring = false, nozzle = W / 2, nozzleT = W / 2, stroke = 0, state = 'play';
+  var shown = 0, lastSuggest = 0, started = false, fullSince = 0, time = 0;
+
+  /* ---- palette UI ---- */
+  var sw = [null];
+  LEVEL.colors.forEach(function (c, i) {
+    var b = document.createElement('button'); b.className = 'sw'; b.setAttribute('aria-label', c.name);
+    var ring = document.createElement('span'); ring.className = 'ring';
+    var dot = document.createElement('span'); dot.className = 'dot';
+    var lite = 'rgb(' + mix(c.rgb, [255, 255, 255], 0.35).map(Math.round).join(',') + ')';
+    dot.style.background = 'radial-gradient(circle at 35% 30%,' + lite + ',' + CSS[i + 1] + ' 62%)';
+    b.appendChild(ring); b.appendChild(dot);
+    b.addEventListener('pointerdown', function (e) { e.stopPropagation(); select(i + 1); audioInit(); });
+    $('palette').appendChild(b); sw.push({ el: b, ring: ring, pct: -1 });
+  });
+  function select(i) { sel = i; buildHi(i); for (var k = 1; k <= NC; k++) sw[k].el.classList.toggle('sel', k === i); }
+  select(1);
+  STARS.forEach(function (v, i) { $('st' + (i + 1)).style.left = (v * 100) + '%'; });
+
+  /* ---- input ---- */
+  function cellX(e) { var r = cv.getBoundingClientRect(); return Math.max(2, Math.min(W - 3, (e.clientX - r.left) / r.width * W)); }
+  $('stage').addEventListener('pointerdown', function (e) {
+    if (state !== 'play') return;
+    e.preventDefault(); audioInit();
+    try { $('stage').setPointerCapture(e.pointerId); } catch (err) {}
+    nozzleT = nozzle = cellX(e); pouring = true; stroke++;
+    if (!started) { started = true; $('tip').classList.add('off'); }
+    $('undo').disabled = false;
+  });
+  $('stage').addEventListener('pointermove', function (e) { if (pouring || e.pointerType === 'mouse') nozzleT = cellX(e); });
+  function stop() { pouring = false; }
+  window.addEventListener('pointerup', stop); window.addEventListener('pointercancel', stop);
+  window.addEventListener('blur', stop);
+  document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+  $('undo').addEventListener('click', function () {
+    while (stroke > 0) { var n = removeStroke(stroke); stroke--; if (n) break; }
+    if (stroke === 0) $('undo').disabled = true;
+  });
+  function restart() {
+    resetGrid(); stroke = 0; state = 'play'; fullSince = 0; shown = 0; pouring = false;
+    $('end').classList.remove('show'); $('undo').disabled = true; $('done').disabled = true; select(1);
+  }
+  $('restart').addEventListener('click', restart);
+  $('again').addEventListener('click', restart);
+  $('done').addEventListener('click', finish);
+  $('cta').addEventListener('click', onCTA);
+
+  /* ==== GOOGLE PLAYABLE HOOK ====
+     The only place that leaves the ad. With exitapi.js loaded this just works. */
+  function onCTA() {
+    if (window.ExitApi && typeof window.ExitApi.exit === 'function') { window.ExitApi.exit(); return; }
+    var t = $('toast'); t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 1600);
+  }
+
+  /* ---- sound (starts only after the first touch, as ad networks require) ---- */
+  var ac = null, hiss = null;
+  function audioInit() {
+    if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+    try {
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      var buf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      var src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+      var f = ac.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 4200; f.Q.value = 0.5;
+      hiss = ac.createGain(); hiss.gain.value = 0;
+      src.connect(f); f.connect(hiss); hiss.connect(ac.destination); src.start();
+    } catch (e) { ac = null; }
+  }
+  function chime(n) {
+    if (!ac) return;
+    [523, 659, 784, 1047].slice(0, n + 1).forEach(function (fq, i) {
+      var o = ac.createOscillator(), gn = ac.createGain(), t = ac.currentTime + i * 0.13;
+      o.type = 'sine'; o.frequency.value = fq; gn.gain.setValueAtTime(0, t);
+      gn.gain.linearRampToValueAtTime(0.13, t + 0.02); gn.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+      o.connect(gn); gn.connect(ac.destination); o.start(t); o.stop(t + 0.65);
+    });
+  }
+  document.addEventListener('visibilitychange', function () { if (ac) { if (document.hidden) ac.suspend(); else ac.resume(); } stop(); });
+
+  /* ---- end ---- */
+  function starsFor(a) { return (a >= STARS[0]) + (a >= STARS[1]) + (a >= STARS[2]); }
+  function finish() {
+    if (state !== 'play') return;
+    state = 'end'; pouring = false;
+    var a = evaluate().acc, n = starsFor(a), els = document.querySelectorAll('.stars span');
+    $('endTitle').textContent = n === 3 ? 'Masterpiece!' : n === 2 ? 'Beautiful!' : n === 1 ? 'Nice work!' : 'Keep practising!';
+    for (var i = 0; i < 3; i++) els[i].classList.remove('on');
+    $('end').classList.add('show');
+    var t0 = performance.now();
+    (function up(now) {
+      var k = Math.min(1, (now - t0) / 900); $('endAcc').textContent = Math.round(a * 100 * (1 - Math.pow(1 - k, 3))) + '%';
+      if (k < 1) requestAnimationFrame(up);
+    })(t0);
+    for (var j = 0; j < n; j++) (function (j2) { setTimeout(function () { els[j2].classList.add('on'); }, 350 + j2 * 260); })(j);
+    chime(n);
+  }
+
+  /* ---- render ---- */
+  function render(a) {
+    var gy = topPx, gw = cw, gh = ch - topPx;
+    if (dx1 >= dx0 && dy1 >= dy0) {                        // upload only the grains that changed
+      sctx.putImageData(sandImg, 0, 0, dx0, dy0, dx1 - dx0 + 1, dy1 - dy0 + 1);
+      dx0 = W; dy0 = H; dx1 = -1; dy1 = -1;
+    }
+    ctx.clearRect(0, 0, cw, ch);
+    var grd = ctx.createLinearGradient(0, 0, 0, gy);
+    grd.addColorStop(0, '#221f2e'); grd.addColorStop(1, '#16141d');
+    ctx.fillStyle = grd; ctx.fillRect(0, 0, cw, gy);
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(ghostCv, 0, gy, gw, gh);
+    if (state === 'play') {
+      ctx.globalAlpha = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(time * 4.2));
+      ctx.drawImage(hiCv, 0, gy, gw, gh);
+      ctx.globalAlpha = 1;
+    }
+    ctx.imageSmoothingEnabled = false;                     // grains are whole device pixels: keep them crisp
+    ctx.drawImage(sandCv, 0, gy, gw, gh);
+
+    /* grains in the air and grains rolling down the slopes */
+    if (pn) {
+      var i, b, c, used = 0, ORDER = [2, 0, 3, 1, 1, 3, 0, 2];
+      for (i = 0; i < pn; i++) used |= 1 << pc[i];
+      for (c = 1; c <= NC; c++) {
+        if (!(used >> c & 1)) continue;
+        for (var grp = 0; grp < 8; grp++) {                // tones interleaved so no single tone ends up on top
+          b = ORDER[grp]; ctx.fillStyle = AIR[c][b];
+          var par = grp >> 2;
+          for (i = par; i < pn; i += 2) {
+            if (pc[i] !== c || (ps[i] & 3) !== b) continue;
+            var vx = pvx[i];
+            if (pm[i]) {                                   // rolling: ride on the surface
+              var gx = ppx[i] + vx * a; gx = gx < 0 ? 0 : gx > W - 1 ? W - 1 : gx;
+              var c0 = gx | 0, c1 = c0 < W - 1 ? c0 + 1 : c0;
+              var hs = h[c0] + (h[c1] - h[c0]) * (gx - c0);
+              ctx.fillRect(Math.round(gx * sc), gy + Math.round((H - hs - 1 - ppy[i]) * sc), sc, sc);
+              continue;
+            }
+            var vy = pvy[i], px2 = ppx[i] + vx * a, y = ppy[i] + vy * a + 1;   // drawn ahead of the last step, stopped at the surface
+            var col = px2 < 0 ? 0 : px2 > W - 1 ? W - 1 : (px2 + 0.5) | 0, floorY = H - h[col];
+            if (y > floorY) y = floorY;
+            if (y <= 0) continue;
+            var len = vy * 0.28; if (len < 1) len = 1;             // a short motion streak
+            var y0 = y - len; if (y0 < 0) y0 = 0;
+            ctx.fillRect(Math.round(px2 * sc), gy + y0 * sc, sc, (y - y0) * sc);
+          }
+        }
+      }
+    }
+
+    /* glass funnel */
+    var u = cw / 108, fx = (nozzle + 0.5) * sc, wob = pouring ? Math.sin(time * 38) * 0.18 * u : 0;
+    ctx.save(); ctx.translate(fx + wob, 0);
+    ctx.beginPath();
+    ctx.moveTo(-8.5 * u, 1.5 * u); ctx.lineTo(8.5 * u, 1.5 * u); ctx.lineTo(2.2 * u, 9.6 * u);
+    ctx.lineTo(1.7 * u, 13 * u); ctx.lineTo(-1.7 * u, 13 * u); ctx.lineTo(-2.2 * u, 9.6 * u); ctx.closePath();
+    var gl = ctx.createLinearGradient(-8.5 * u, 0, 8.5 * u, 0);
+    gl.addColorStop(0, 'rgba(255,255,255,.34)'); gl.addColorStop(0.22, 'rgba(255,255,255,.10)');
+    gl.addColorStop(0.7, 'rgba(255,255,255,.08)'); gl.addColorStop(1, 'rgba(255,255,255,.26)');
+    ctx.fillStyle = gl; ctx.fill();
+    ctx.lineWidth = Math.max(1, u * 0.45); ctx.strokeStyle = 'rgba(255,255,255,.6)'; ctx.lineJoin = 'round'; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-6.4 * u, 3.6 * u); ctx.lineTo(6.4 * u, 3.6 * u); ctx.lineTo(1.6 * u, 9.7 * u);
+    ctx.lineTo(1.2 * u, 13 * u); ctx.lineTo(-1.2 * u, 13 * u); ctx.lineTo(-1.6 * u, 9.7 * u); ctx.closePath();
+    var sg = ctx.createLinearGradient(-6.4 * u, 0, 6.4 * u, 0), col = LEVEL.colors[sel - 1].rgb;
+    sg.addColorStop(0, 'rgb(' + mix(col, [0, 0, 0], 0.28).map(Math.round).join(',') + ')');
+    sg.addColorStop(0.4, CSS[sel]);
+    sg.addColorStop(1, 'rgb(' + mix(col, [0, 0, 0], 0.18).map(Math.round).join(',') + ')');
+    ctx.fillStyle = sg; ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.3)'; ctx.fillRect(-5.6 * u, 3.6 * u, 11.2 * u, 0.5 * u);
+    ctx.beginPath(); ctx.moveTo(-6.9 * u, 2.5 * u); ctx.lineTo(-3.4 * u, 7 * u);
+    ctx.lineWidth = Math.max(1, u * 0.5); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineCap = 'round'; ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ---- HUD ---- */
+  function hud(s) {
+    shown += (s.acc - shown) * 0.2;
+    var p = Math.round(shown * 100);
+    $('accNum').textContent = p + '%'; $('accFill').style.width = (shown * 100) + '%';
+    for (var i = 0; i < 3; i++) $('st' + (i + 1)).classList.toggle('on', shown >= STARS[i] - 0.004);
+    for (var k = 1; k <= NC; k++) {
+      var pc2 = Math.round(per[k] / targetCount[k] * 100);
+      if (pc2 !== sw[k].pct) {
+        sw[k].pct = pc2;
+        sw[k].ring.style.background = 'conic-gradient(' + CSS[k] + ' ' + pc2 + '%,rgba(255,255,255,.13) 0)';
+        sw[k].el.classList.toggle('full', pc2 >= 90);
+      }
+    }
+    if (s.suggest !== lastSuggest) {
+      lastSuggest = s.suggest;
+      for (var j = 1; j <= NC; j++) sw[j].el.classList.toggle('hint', j === s.suggest);
+    }
+    $('done').disabled = s.fill < 0.5;
+  }
+
+  /* ---- loop: fixed 60 Hz simulation, drawn at the display rate with interpolation ---- */
+  var DT = 1 / 60, last = performance.now(), accu = 0, frame = 0;
+  function loop(now) {
+    var dt = Math.min(0.1, (now - last) / 1000); last = now; accu += dt; time += dt;
+    var n = 0;
+    while (accu >= DT && n < 3) {
+      accu -= DT; n++;
+      nozzle += (nozzleT - nozzle) * 0.45;
+      tick(state === 'play' && pouring, nozzle, sel, stroke);
+    }
+    if (accu > DT * 2) accu = 0;
+    if (hiss && ac) hiss.gain.setTargetAtTime(pouring && state === 'play' ? 0.045 : 0, ac.currentTime, 0.04);
+    if ((frame++ & 3) === 0) {
+      var s = evaluate(); hud(s);
+      if (state === 'play') {
+        if (s.fill >= 0.985 && !pn) { if (!fullSince) fullSince = now; else if (now - fullSince > 600) finish(); }
+        else fullSince = 0;
+      }
+    }
+    render(Math.min(1, accu / DT));
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
